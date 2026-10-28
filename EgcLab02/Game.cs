@@ -18,6 +18,7 @@ public class Game : GameWindow
     // Obiectele care folosesc OpenGL se creează în OnLoad (abia atunci există contextul OpenGL).
     private Shader _shader = null!;
     private Triangle _triangle = null!;
+    private Quad _quad = null!;
 
     // Starea aplicației (se modifică în OnUpdateFrame, se folosește în OnRenderFrame).
     private Color4 _clearColor = new(0.2f, 0.3f, 0.3f, 1.0f);   // culoarea de fundal
@@ -29,6 +30,7 @@ public class Game : GameWindow
     private int _vertexColorIndex;                                 // culoarea atribuita la urmatoarea apasare V
     private bool _deformAllVertices = true;                         // false = doar varful de sus se misca
     private bool _collapsed;                                       // toate varfurile sunt in acelasi punct
+    private bool _showQuad;                                        // false = triunghi, true = dreptunghi
 
     // Contoare pentru exemplul cu bucla principală (afișate în titlul ferestrei).
     private readonly string _baseTitle;
@@ -61,12 +63,14 @@ public class Game : GameWindow
         Console.WriteLine($"OpenGL  : {GL.GetString(StringName.Version)}");
         Console.WriteLine($"Vendor  : {GL.GetString(StringName.Vendor)}");
         Console.WriteLine($"Renderer: {GL.GetString(StringName.Renderer)}");
+        Console.WriteLine("Apasa H pentru lista comenzilor.");
 
-        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        GL.Viewport(0, 0, FramebufferSize.X, FramebufferSize.Y);
         GL.PointSize(8.0f);
 
         _shader = Shader.FromFiles("Shaders/shader.vert", "Shaders/shader.frag");
         _triangle = new Triangle();
+        _quad = new Quad();
     }
 
     /// <summary>Apelată când se schimbă dimensiunea ferestrei.</summary>
@@ -90,6 +94,16 @@ public class Game : GameWindow
         if (KeyboardState.IsKeyDown(Keys.Escape))
         {
             Close();
+        }
+
+        if (KeyboardState.IsKeyPressed(Keys.H))
+        {
+            PrintHelp();
+        }
+
+        if (KeyboardState.IsKeyPressed(Keys.Tab))
+        {
+            _showQuad = !_showQuad;
         }
 
         // P2: nuanta generala a triunghiului. Alb pastreaza culorile varfurilor.
@@ -216,7 +230,14 @@ public class Game : GameWindow
 
         // 3. Setam rasterizarea si desenam triunghiul. PolygonMode este stare OpenGL.
         GL.PolygonMode(TriangleFace.FrontAndBack, _polygonMode);
-        _triangle.Draw();
+        if (_showQuad)
+        {
+            _quad.Draw();
+        }
+        else
+        {
+            _triangle.Draw();
+        }
 
         // 4. Afișăm cadrul terminat: back buffer <-> front buffer.
         SwapBuffers();
@@ -226,8 +247,31 @@ public class Game : GameWindow
     protected override void OnUnload()
     {
         _triangle.Dispose();
+        _quad.Dispose();
         _shader.Dispose();
 
         base.OnUnload();
+    }
+
+    private static void PrintHelp()
+    {
+        Console.WriteLine("========================================");
+        Console.WriteLine("EGC - LABORATOR 02");
+        Console.WriteLine("LISTA COMENZILOR");
+        Console.WriteLine("========================================");
+        Console.WriteLine("H              - afiseaza aceasta lista");
+        Console.WriteLine("ESC            - inchide aplicatia");
+        Console.WriteLine("TAB            - comuta intre triunghi si dreptunghi");
+        Console.WriteLine("SAGETI         - deplaseaza forma selectata");
+        Console.WriteLine("0 - 3          - schimba nuanta generala a formei");
+        Console.WriteLine("A              - face albe toate varfurile triunghiului");
+        Console.WriteLine("R              - reface culorile RGB ale triunghiului");
+        Console.WriteLine("V              - schimba pe rand culoarea unui varf triunghiular");
+        Console.WriteLine("F              - comuta intre afisarea plina si contur");
+        Console.WriteLine("M              - parcurge modurile plin, contur si puncte");
+        Console.WriteLine("T              - comuta VSync");
+        Console.WriteLine("D              - comuta intre deformarea tuturor varfurilor si doar varful de sus");
+        Console.WriteLine("X              - strange sau reface triunghiul in centru");
+        Console.WriteLine("========================================");
     }
 }
