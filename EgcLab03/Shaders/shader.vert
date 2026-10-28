@@ -15,8 +15,9 @@ uniform float uWaveAmplitude;  // amplitudinea undei; 0 = unda oprita (tasta W)
 uniform float uWaveFrequency;  // cat de "deasa" este unda
 uniform int uColorMode;        // 0 = culoarea din VBO, 1 = culoare calculata din pozitie (tasta C)
 
-// Iesire catre fragment shader (valoarea va fi interpolata la rasterizare)
-out vec3 vColor;
+// Interpolarea normala ramane disponibila impreuna cu iesirea flat.
+out vec3 vSmoothColor;
+flat out vec3 vColor;
 
 void main()
 {
@@ -28,12 +29,13 @@ void main()
     // P5c: culoarea poate veni din VBO sau poate fi calculata din pozitia initiala.
     if (uColorMode == 1)
     {
-        vColor = aPosition * 0.5 + 0.5;
+        vSmoothColor = aPosition * 0.5 + 0.5;
     }
     else
     {
-        vColor = aColor;
+        vSmoothColor = aColor;
     }
+    vColor = vSmoothColor;
 
     gl_Position = uProjection * uView * vec4(position + uOffset, 1.0);
 }

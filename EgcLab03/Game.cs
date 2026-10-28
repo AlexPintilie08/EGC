@@ -25,6 +25,8 @@ public class Game : GameWindow
         PrimitiveType.Triangles, PrimitiveType.TriangleStrip, PrimitiveType.TriangleFan
     };
 
+    private static readonly float[] WaveFrequencies = { 6.0f, 12.0f, 24.0f };
+
     // Obiecte care NU depind de OpenGL pot fi create imediat.
     private readonly Camera _camera = new();
 
@@ -45,6 +47,8 @@ public class Game : GameWindow
     private bool _paused = false;                    // pauză: timpul animației nu mai curge (se folosește la P5b)
     private bool _waveOn;                            // unda din vertex shader
     private int _colorMode;                          // 0 = culoarea din VBO, 1 = culoare din poziție
+    private bool _flatShading;                       // false = interpolare, true = flat shading
+    private int _waveFrequencyIndex;                 // frecventele 6, 12 si 24
     private double _elapsed;                         // timpul animației (secunde)
 
     // Contoare afișate în titlul ferestrei.
@@ -77,12 +81,13 @@ public class Game : GameWindow
         Console.WriteLine($"OpenGL  : {GL.GetString(StringName.Version)}");
         Console.WriteLine($"Vendor  : {GL.GetString(StringName.Vendor)}");
         Console.WriteLine($"Renderer: {GL.GetString(StringName.Renderer)}");
+        Console.WriteLine("Apasa H pentru lista comenzilor.");
         PrintHsvCheck(0.5f, 1.0f, 1.0f);
         PrintHsvCheck(0.25f, 1.0f, 1.0f);
         PrintHsvCheck(0.0f, 0.0f, 1.0f);
         PrintHsvCheck(0.0f, 1.0f, 0.5f);
 
-        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        GL.Viewport(0, 0, FramebufferSize.X, FramebufferSize.Y);
         GL.PointSize(8.0f);   // dimensiunea punctelor (PrimitiveType.Points și PolygonMode.Point)
 
         _shader = Shader.FromFiles("Shaders/shader.vert", "Shaders/shader.frag");
@@ -120,6 +125,11 @@ public class Game : GameWindow
         if (KeyboardState.IsKeyDown(Keys.Escape))
         {
             Close();
+        }
+
+        if (KeyboardState.IsKeyPressed(Keys.H))
+        {
+            PrintHelp();
         }
 
         // --- Din laboratorul 2 (rezolvat; comparați cu soluția voastră) ---------------
@@ -166,6 +176,20 @@ public class Game : GameWindow
         {
             _ringMode = (_ringMode + 1) % RingModes.Length;
             _meshes[(int)ShapeKind.Ring].Primitive = RingModes[_ringMode];
+            _titleDirty = true;
+        }
+
+        // G: parcurge frecventele undei folosite pe grila.
+        if (KeyboardState.IsKeyPressed(Keys.G))
+        {
+            _waveFrequencyIndex = (_waveFrequencyIndex + 1) % WaveFrequencies.Length;
+            _titleDirty = true;
+        }
+
+        // I: alege interpolarea normala sau culoarea flat a varfului provocator.
+        if (KeyboardState.IsKeyPressed(Keys.I))
+        {
+            _flatShading = !_flatShading;
             _titleDirty = true;
         }
 
@@ -232,8 +256,9 @@ public class Game : GameWindow
         // Uniformele noi din laboratorul 3 (le citește vertex shaderul)
         _shader.SetFloat("uTime", (float)_elapsed);
         _shader.SetFloat("uWaveAmplitude", _waveOn ? 0.08f : 0.0f);
-        _shader.SetFloat("uWaveFrequency", 6.0f);
+        _shader.SetFloat("uWaveFrequency", WaveFrequencies[_waveFrequencyIndex]);
         _shader.SetInt("uColorMode", _colorMode);
+        _shader.SetInt("uFlatShading", _flatShading ? 1 : 0);
 
         // 3. Desenăm forma aleasă.
         _meshes[(int)_shape].Draw();
@@ -307,10 +332,38 @@ public class Game : GameWindow
         {
             ShapeKind.Polygon => $" (n = {_sides})",
             ShapeKind.Ring => $" ({RingModes[_ringMode]})",
+            ShapeKind.Grid => $" (17 x 9, f = {WaveFrequencies[_waveFrequencyIndex]:0})",
             _ => ""
         };
         string pause = _paused ? " | PAUZĂ" : "";
+        string shading = _flatShading ? " | flat" : "";
 
-        Title = $"{_baseTitle} | {name}{detail} | update/s: {_lastUpdates} | render/s: {_lastFrames}{pause}";
+        Title = $"{_baseTitle} | {name}{detail} | update/s: {_lastUpdates} | render/s: {_lastFrames}{pause}{shading}";
+    }
+
+    private static void PrintHelp()
+    {
+        Console.WriteLine("========================================");
+        Console.WriteLine("EGC - LABORATOR 03");
+        Console.WriteLine("LISTA COMENZILOR");
+        Console.WriteLine("========================================");
+        Console.WriteLine("H              - afiseaza aceasta lista");
+        Console.WriteLine("ESC            - inchide aplicatia");
+        Console.WriteLine("TAB            - alege urmatoarea forma");
+        Console.WriteLine("SAGETI         - deplaseaza forma curenta");
+        Console.WriteLine("0 - 3          - schimba nuanta generala a formei");
+        Console.WriteLine("A              - face albe toate varfurile dreptunghiului");
+        Console.WriteLine("R              - coloreaza partea de jos rosie si partea de sus albastra");
+        Console.WriteLine("B              - atribuie culorile rosu, verde, albastru si galben");
+        Console.WriteLine("F              - contur sau plin pentru forme triunghiulare");
+        Console.WriteLine("+ / -          - modifica laturile poligonului regulat");
+        Console.WriteLine("M              - parcurge cele 7 moduri pentru inel: Points, Lines,");
+        Console.WriteLine("                 LineStrip, LineLoop, Triangles, TriangleStrip, TriangleFan");
+        Console.WriteLine("W              - porneste sau opreste unda, vizibila clar pe grila");
+        Console.WriteLine("G              - schimba frecventa undei: 6, 12 sau 24");
+        Console.WriteLine("C              - comuta culoarea din VBO sau din pozitie");
+        Console.WriteLine("I              - comuta interpolarea normala sau flat shading pentru triunghiuri");
+        Console.WriteLine("P              - pune pe pauza sau reporneste animatia");
+        Console.WriteLine("========================================");
     }
 }
